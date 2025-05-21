@@ -18,7 +18,7 @@ contract BorrowActionScript is Script {
 
     address public deployer;
     IPoolManager public manager = IPoolManager(address(0x498581fF718922c3f8e6A244956aF099B2652b2b));
-    IAmpli public ampli = IAmpli(address(0x00d91b371d01d40cFdec3c071f02e92aDE5b4aC0));
+    IAmpli public ampli = IAmpli(address(0x00D6aFb06576DEA356cBa9F44Ba71aB4eb780Ac0));
     TestERC20 public tokenMock = TestERC20(address(0xb42Cfe81B72A2a3be27BA2f7D3D3eBD4Cc157661));
     address public pegToken = address(0x0b8d08b76eFEF943FE32dCf4d7d0c58C7Fcbb33e);
     ActionsRouter public actionsRouter = ActionsRouter(address(0xEB0c4B14123D190Fe62A7BA34690fc6735901253));

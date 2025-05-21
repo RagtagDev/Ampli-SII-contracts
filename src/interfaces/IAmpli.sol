@@ -72,5 +72,5 @@ interface IAmpli is IExtsload, IExttload {
     function settle() external payable returns (uint256 paid);
     function settleFor(address recipient) external payable returns (uint256 paid);
     function clear(Currency currency, uint256 amount) external;
-    function debit(Currency currency, uint256 amount) external;
+    function debit(Currency currency, uint256 amount, address recipient) external;
 }

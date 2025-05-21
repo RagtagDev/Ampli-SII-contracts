@@ -42,6 +42,7 @@ contract ActionsRouter is IUnlockCallback {
     }
 
     function executeActions(Actions[] memory actions, bytes[] memory params) external payable {
+        // TODO: check position owner
         ampli.unlock(abi.encode(actions, params));
     }
 

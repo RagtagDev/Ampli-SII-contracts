@@ -29,13 +29,11 @@ contract Agent is IAgent {
     }
 
     // TODO: Add credit bundle
-    function initiate(
-        address executor,
-        bytes calldata executionData,
-        uint256 recipientChainId,
-        address recipient,
-        CurrencyData[] calldata debitBundle
-    ) external payable returns (uint256 cacheNonce) {
+    function initiate(address executor, bytes calldata executionData, CurrencyData[] calldata debitBundle)
+        external
+        payable
+        returns (uint256 cacheNonce)
+    {
         // 1. debitBundle.transfer(msg.sender, address(this))
         debitBundle.transferIn(msg.sender);
         // 2. call broker.handleMessage on hubChainId through messenger and get messgeHash
@@ -48,16 +46,7 @@ contract Agent is IAgent {
         // TODO: Use Assembly Optimization
         message = abi.encodeCall(
             IBroker.handleMessage,
-            (
-                msg.sender,
-                executor,
-                executionData,
-                recipientChainId,
-                recipient,
-                debitBundle,
-                onSuccessCallback,
-                onFailureCallback
-            )
+            (executor, executor, executionData, debitBundle, onSuccessCallback, onFailureCallback)
         );
 
         messenger.sendMessage(hubChainId, address(broker), message);

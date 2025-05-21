@@ -398,9 +398,9 @@ contract Ampli is IAmpli, Extsload, Exttload {
         }
     }
 
-    function debit(Currency currency, uint256 amount) external onlyWhenUnlocked {
+    function debit(Currency currency, uint256 amount, address recipient) external {
         require(msg.sender == broker, OnlyBroker());
-        _accountDelta(currency, amount.toInt128(), msg.sender);
+        _accountDelta(currency, amount.toInt128(), recipient);
     }
 
     function _settle(address recipient) internal returns (uint256 paid) {

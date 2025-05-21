@@ -22,7 +22,7 @@ import {console} from "forge-std/console.sol";
 
 contract RouterDeployScript is Script {
     IPoolManager public manager = IPoolManager(address(0x498581fF718922c3f8e6A244956aF099B2652b2b));
-    IAmpli public ampli = IAmpli(address(0x00d91b371d01d40cFdec3c071f02e92aDE5b4aC0));
+    IAmpli public ampli = IAmpli(address(0x00D6aFb06576DEA356cBa9F44Ba71aB4eb780Ac0));
     bytes32 public salt = hex"00";
 
     V4MiniRouter public v4MiniRouter;
@@ -69,13 +69,13 @@ contract RouterDeployScript is Script {
         vm.createSelectFork("HubChain");
         vm.startBroadcast(vm.envUint("WALLET_PRIVATE_KEY"));
 
-        v4MiniRouter = new V4MiniRouter{ salt: salt }(address(manager));
+        v4MiniRouter = new V4MiniRouter{salt: salt}(address(manager));
         console.log("v4MiniRouter: ", address(v4MiniRouter));
-        v4RouterHelper = new V4RouterHelper{ salt: salt }(v4MiniRouter);
+        v4RouterHelper = new V4RouterHelper{salt: salt}(v4MiniRouter);
         console.log("v4RouterHelper: ", address(v4RouterHelper));
-        actionsRouter = new ActionsRouter{ salt: salt }(ampli, v4RouterHelper);
+        actionsRouter = new ActionsRouter{salt: salt}(ampli, v4RouterHelper);
         console.log("actionsRouter: ", address(actionsRouter));
-        hubExecutor = new HubExecutor{ salt: salt }(ampli, v4RouterHelper);
+        hubExecutor = new HubExecutor{salt: salt}(ampli, v4RouterHelper);
         console.log("hubExecutor: ", address(hubExecutor));
 
         tokenMock = new TestERC20{salt: hex"0ff0"}("Test Token", "TST", 18);
@@ -92,7 +92,7 @@ contract RouterDeployScript is Script {
 
         address pegTokenAddr = ampli.initialize(address(tokenMock), deployer, irm, oracle, 2, 1, hex"ff");
         console.log("pegToken: ", pegTokenAddr);
-        
+
         actionsRouter.approve(address(tokenMock));
         tokenMock.approve(address(ampli), type(uint256).max);
         tokenMock.approve(address(actionsRouter), type(uint256).max);

@@ -24,8 +24,6 @@ contract Broker is IBroker, IUnlockCallback {
         address user,
         address executor,
         bytes calldata executionData,
-        uint256 recipientChainId,
-        address recipient,
         CurrencyData[] calldata debitBundle,
         bytes calldata onSuccessCallback,
         bytes calldata onFailureCallback
@@ -34,9 +32,7 @@ contract Broker is IBroker, IUnlockCallback {
         require(msg.sender == address(messenger), NotMessenger());
         require(sourceSender == address(agent), NotAgent());
 
-        try Broker(this).selfHandleMessage(
-            sourceChainId, user, executor, executionData, recipientChainId, recipient, debitBundle
-        ) {
+        try Broker(this).selfHandleMessage(sourceChainId, user, executor, executionData, debitBundle) {
             if (onSuccessCallback.length > 0) messenger.sendMessage(sourceChainId, sourceSender, onSuccessCallback);
         } catch {
             if (onFailureCallback.length > 0) messenger.sendMessage(sourceChainId, sourceSender, onFailureCallback);
@@ -48,14 +44,12 @@ contract Broker is IBroker, IUnlockCallback {
         address user,
         address executor,
         bytes calldata executionData,
-        uint256 recipientChainId,
-        address recipient,
         CurrencyData[] calldata debitBundle
     ) external {
         require(msg.sender == address(this), NotSelf());
 
         for (uint256 i = 0; i < debitBundle.length; i++) {
-            ampli.debit(debitBundle[i].currency, debitBundle[i].amount);
+            ampli.debit(debitBundle[i].currency, debitBundle[i].amount, user);
         }
 
         ampli.unlock(abi.encode(executor, executionData));

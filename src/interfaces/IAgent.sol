@@ -8,13 +8,10 @@ interface IAgent {
     error NotBroker();
     error NotHubChain();
 
-    function initiate(
-        address executor,
-        bytes calldata executionData,
-        uint256 recipientChainId,
-        address recipient,
-        CurrencyData[] calldata debitBundle
-    ) external payable returns (uint256 nonce);
+    function initiate(address executor, bytes calldata executionData, CurrencyData[] calldata debitBundle)
+        external
+        payable
+        returns (uint256 nonce);
 
     // function release(address recipient, CurrencyData[] calldata creditBundle) external;
 
