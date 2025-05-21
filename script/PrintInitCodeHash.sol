@@ -30,9 +30,12 @@ contract PrintInitCodeHash is Script {
     // address constant PM_ADDRESS = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;  // Base Sepolia: 84532
     // address constant PM_ADDRESS = 0xFB3e0C6F74eB1a21CC1Da29aeC80D2Dfe6C9a317;  // Arbitrum Sepolia: 421614
 
-    function run() public pure {
+    function run() public view {
+        address brokerDeployer = vm.envAddress("BROKER_ADDRESS");
+        address broker = vm.computeCreateAddress(brokerDeployer, 0);
+
         // Hook constructor arguments
-        bytes memory constructorArguments = abi.encode(PM_ADDRESS, 0xB2Cf8DCCfE32B357fAe9AE2C6bCD35FA43E03d6c);
+        bytes memory constructorArguments = abi.encode(PM_ADDRESS, 0x9954EF92D8ac2b3c5E86B56AaAa291F09A592320, broker);
 
         // Print Init Code Hash
         bytes memory creationCodeWithConstructorArguments =

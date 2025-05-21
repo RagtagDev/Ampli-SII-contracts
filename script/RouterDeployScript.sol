@@ -6,6 +6,7 @@ import {IAmpli} from "src/interfaces/IAmpli.sol";
 import {V4MiniRouter} from "test/utils/V4MiniRouter.sol";
 import {V4RouterHelper} from "test/utils/V4RouterHelper.sol";
 import {ActionsRouter} from "test/utils/ActionsRouter.sol";
+import {HubExecutor} from "test/mock/HubExecutor.sol";
 import {TestERC20} from "test/mock/TestERC20.sol";
 import {OracleMock} from "test/mock/OracleMock.sol";
 import {IrmMock} from "test/mock/IrmMock.sol";
@@ -17,14 +18,17 @@ import {Currency} from "v4-core/types/Currency.sol";
 import {BorrowShare, BorrowShareLibrary} from "src/types/BorrowShare.sol";
 import {Actions} from "test/utils/ActionsRouter.sol";
 import {V4Actions} from "test/utils/V4MiniRouter.sol";
+import {console} from "forge-std/console.sol";
 
 contract RouterDeployScript is Script {
     IPoolManager public manager = IPoolManager(address(0x498581fF718922c3f8e6A244956aF099B2652b2b));
-    IAmpli public ampli = IAmpli(address(0x2FE11aaEc590FFeD4E56C31303987C1d7a498ac0));
+    IAmpli public ampli = IAmpli(address(0x00d91b371d01d40cFdec3c071f02e92aDE5b4aC0));
+    bytes32 public salt = hex"00";
 
     V4MiniRouter public v4MiniRouter;
     V4RouterHelper public v4RouterHelper;
     ActionsRouter public actionsRouter;
+    HubExecutor public hubExecutor;
     TestERC20 public tokenMock;
     IERC20 public pegToken;
     IrmMock public irm;
@@ -32,10 +36,17 @@ contract RouterDeployScript is Script {
     PoolKey public poolKey;
     address public deployer;
 
-    function _supplyMaxFungibleCollateral(uint256 amount) public {
-        ampli.updateAuthorization(poolKey, 1, address(deployer), address(actionsRouter));
+    function _supplyCollateral(address sender, uint256 positionId, uint256 amount) public {
+        Actions[] memory actions = new Actions[](2);
+        bytes[] memory params = new bytes[](2);
 
-        ampli.supplyFungibleCollateral(poolKey, 1, 0, amount);
+        actions[0] = Actions.SUPPLY_FUNGIBLE_COLLATERAL;
+        params[0] = abi.encode(poolKey, positionId, 0, amount);
+
+        actions[1] = Actions.SETTLE_ALL;
+        params[1] = abi.encode(sender, poolKey.currency1);
+
+        actionsRouter.executeActions(actions, params);
     }
 
     function _borrowPegToken(address receiver, uint256 amount) public {
@@ -54,17 +65,25 @@ contract RouterDeployScript is Script {
     }
 
     function run() public {
-        deployer = vm.envAddress("DEPLOY_ADDRESS");
-        vm.createSelectFork("Base");
-        vm.startBroadcast(vm.envUint("DEPLOY_PRIVATE"));
+        deployer = vm.envAddress("WALLET_ADDRESS");
+        vm.createSelectFork("HubChain");
+        vm.startBroadcast(vm.envUint("WALLET_PRIVATE_KEY"));
 
-        v4MiniRouter = new V4MiniRouter(address(manager));
-        v4RouterHelper = new V4RouterHelper(v4MiniRouter);
-        actionsRouter = new ActionsRouter(ampli, v4RouterHelper);
+        v4MiniRouter = new V4MiniRouter{ salt: salt }(address(manager));
+        console.log("v4MiniRouter: ", address(v4MiniRouter));
+        v4RouterHelper = new V4RouterHelper{ salt: salt }(v4MiniRouter);
+        console.log("v4RouterHelper: ", address(v4RouterHelper));
+        actionsRouter = new ActionsRouter{ salt: salt }(ampli, v4RouterHelper);
+        console.log("actionsRouter: ", address(actionsRouter));
+        hubExecutor = new HubExecutor{ salt: salt }(ampli, v4RouterHelper);
+        console.log("hubExecutor: ", address(hubExecutor));
 
         tokenMock = new TestERC20{salt: hex"0ff0"}("Test Token", "TST", 18);
+        console.log("tokenMock: ", address(tokenMock));
         irm = new IrmMock();
+        console.log("irm: ", address(irm));
         oracle = new OracleMock();
+        console.log("oracle: ", address(oracle));
 
         irm.setBorrowRate(0.01 * 1e27);
         // assetId = 0, mock token price / peg token = 1
@@ -72,7 +91,8 @@ contract RouterDeployScript is Script {
         oracle.setFungibleAssetPrice(1, 1e36);
 
         address pegTokenAddr = ampli.initialize(address(tokenMock), deployer, irm, oracle, 2, 1, hex"ff");
-
+        console.log("pegToken: ", pegTokenAddr);
+        
         actionsRouter.approve(address(tokenMock));
         tokenMock.approve(address(ampli), type(uint256).max);
         tokenMock.approve(address(actionsRouter), type(uint256).max);
@@ -91,7 +111,7 @@ contract RouterDeployScript is Script {
         ampli.updateAuthorization(poolKey, 1, address(deployer), address(actionsRouter));
 
         tokenMock.mint(address(deployer), 1500 ether);
-        _supplyMaxFungibleCollateral(1000 ether);
+        _supplyCollateral(address(deployer), 1, 1000 ether);
         _borrowPegToken(address(deployer), 600 ether);
 
         actionsRouter.approve(address(pegToken));

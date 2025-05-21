@@ -22,6 +22,7 @@ interface IAmpli is IExtsload, IExttload {
     error MustClearExactPositiveDelta();
     error NonzeroNativeValue();
     error CurrencyNotSettled();
+    error OnlyBroker();
 
     event Initialize(
         PoolId indexed id, Currency indexed pegToken, Currency indexed underlying, IIrm irm, IOracle oracle
@@ -71,4 +72,5 @@ interface IAmpli is IExtsload, IExttload {
     function settle() external payable returns (uint256 paid);
     function settleFor(address recipient) external payable returns (uint256 paid);
     function clear(Currency currency, uint256 amount) external;
+    function debit(Currency currency, uint256 amount) external;
 }

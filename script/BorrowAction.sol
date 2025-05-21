@@ -18,51 +18,75 @@ contract BorrowActionScript is Script {
 
     address public deployer;
     IPoolManager public manager = IPoolManager(address(0x498581fF718922c3f8e6A244956aF099B2652b2b));
-    IAmpli public ampli = IAmpli(address(0x2FE11aaEc590FFeD4E56C31303987C1d7a498ac0));
-    TestERC20 public tokenMock = TestERC20(address(0xC546DE80e76E62c849eD0Af412354E588DA5DfA5));
-    ActionsRouter public actionsRouter = ActionsRouter(address(0x52653db72738652389088540f42F5b17435063BD));
+    IAmpli public ampli = IAmpli(address(0x00d91b371d01d40cFdec3c071f02e92aDE5b4aC0));
+    TestERC20 public tokenMock = TestERC20(address(0xb42Cfe81B72A2a3be27BA2f7D3D3eBD4Cc157661));
+    address public pegToken = address(0x0b8d08b76eFEF943FE32dCf4d7d0c58C7Fcbb33e);
+    ActionsRouter public actionsRouter = ActionsRouter(address(0xEB0c4B14123D190Fe62A7BA34690fc6735901253));
     PoolKey public poolKey;
 
     function setUp() public {
-        deployer = vm.envAddress("DEPLOY_ADDRESS");
+        deployer = vm.envAddress("WALLET_ADDRESS");
 
-        vm.label(address(0xC546DE80e76E62c849eD0Af412354E588DA5DfA5), "TestToken");
-        vm.label(address(0x8AB3F86DE96cB1AcCB533DFA5099a945Ec2ec764), "PegToken");
+        vm.label(address(actionsRouter), "ActionsRouter");
+        vm.label(address(ampli), "Ampli");
+        vm.label(address(tokenMock), "TestToken");
+        vm.label(pegToken, "PegToken");
+
         poolKey = PoolKey({
-            currency0: Currency.wrap(address(0x8AB3F86DE96cB1AcCB533DFA5099a945Ec2ec764)),
-            currency1: Currency.wrap(address(0xC546DE80e76E62c849eD0Af412354E588DA5DfA5)),
+            currency0: Currency.wrap(pegToken),
+            currency1: Currency.wrap(address(tokenMock)),
             fee: 100, // 0.01%
             tickSpacing: 1,
             hooks: IHooks(address(ampli))
         });
     }
 
+    function _supplyCollateral(address sender, uint256 positionId, uint256 amount) public {
+        Actions[] memory actions = new Actions[](2);
+        bytes[] memory params = new bytes[](2);
+
+        actions[0] = Actions.SUPPLY_FUNGIBLE_COLLATERAL;
+        params[0] = abi.encode(poolKey, positionId, 0, amount);
+
+        actions[1] = Actions.SETTLE_ALL;
+        params[1] = abi.encode(sender, poolKey.currency1);
+
+        actionsRouter.executeActions(actions, params);
+    }
+
     function run() public {
-        vm.createSelectFork("Base");
+        vm.createSelectFork("HubChain");
         (uint256 totalBorrow, BorrowShare totalShare) = IAmpli(address(ampli)).getPoolBorrow(poolKey.toId());
 
         BorrowShare borrowed = BorrowShareLibrary.toSharesDown(10 ether, totalBorrow, totalShare);
 
-        vm.startBroadcast(vm.envUint("DEPLOY_PRIVATE"));
+        vm.startBroadcast(vm.envUint("WALLET_PRIVATE_KEY"));
 
         ampli.updateAuthorization(poolKey, 2, deployer, address(actionsRouter));
 
         tokenMock.mint(deployer, 20 ether);
         tokenMock.approve(address(ampli), type(uint256).max);
 
-        ampli.supplyFungibleCollateral(poolKey, 2, 0, 20 ether);
+        // ampli.supplyFungibleCollateral(poolKey, 2, 0, 20 ether);
+        _supplyCollateral(deployer, 2, 10 ether);
 
-        Actions[] memory actions = new Actions[](3);
-        bytes[] memory params = new bytes[](3);
+        Actions[] memory actions = new Actions[](5);
+        bytes[] memory params = new bytes[](5);
 
         actions[0] = Actions.BORROW;
         params[0] = abi.encode(poolKey, 2, borrowed);
 
-        actions[1] = Actions.V4_SWAP;
-        params[1] = abi.encode(poolKey, -10 ether);
+        actions[1] = Actions.TAKE_ALL;
+        params[1] = abi.encode(address(actionsRouter), address(pegToken));
 
-        actions[2] = Actions.SUPPLY_FUNGIBLE_COLLATERAL;
-        params[2] = abi.encode(poolKey, 2, 0, 0);
+        actions[2] = Actions.V4_SWAP;
+        params[2] = abi.encode(poolKey, -20 ether);
+
+        actions[3] = Actions.SUPPLY_FUNGIBLE_COLLATERAL;
+        params[3] = abi.encode(poolKey, 2, 0, 0);
+
+        actions[4] = Actions.SETTLE_ALL;
+        params[4] = abi.encode(address(actionsRouter), poolKey.currency1);
 
         actionsRouter.executeActions(actions, params);
 

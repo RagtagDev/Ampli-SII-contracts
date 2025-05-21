@@ -30,6 +30,7 @@ contract Ampli is IAmpli, Extsload, Exttload {
 
     IPoolManager public immutable poolManager;
     IPegTokenFactory public immutable factory;
+    address public immutable broker;
 
     mapping(PoolId id => Pool) internal _pools;
 
@@ -39,9 +40,10 @@ contract Ampli is IAmpli, Extsload, Exttload {
     }
 
     //Hooks.Permissions(false, false, true, false, true, false, true, true, false, false, false, false, false, false)
-    constructor(IPoolManager _manager, IPegTokenFactory _factory) {
+    constructor(IPoolManager _manager, IPegTokenFactory _factory, address _broker) {
         poolManager = _manager;
         factory = _factory;
+        broker = _broker;
     }
 
     modifier onlyPoolManager() {
@@ -394,6 +396,11 @@ contract Ampli is IAmpli, Extsload, Exttload {
         unchecked {
             _accountDelta(currency, -(amountDelta), msg.sender);
         }
+    }
+
+    function debit(Currency currency, uint256 amount) external onlyWhenUnlocked {
+        require(msg.sender == broker, OnlyBroker());
+        _accountDelta(currency, amount.toInt128(), msg.sender);
     }
 
     function _settle(address recipient) internal returns (uint256 paid) {

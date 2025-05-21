@@ -7,12 +7,14 @@ remappings = [
     "v4-core/=dependencies/uniswap-v4-core-4/src/",
 ]
 always_use_create_2_factory = true
+via-ir = true
 
 [dependencies]
 forge-std = "1.9.7"
 uniswap-v4-core = "4"
 
 [rpc_endpoints]
-Base = "${BASE_RPC_URL}"
+SpokeChain = "http://127.0.0.1:9545/"
+HubChain = "http://127.0.0.1:9546/"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
